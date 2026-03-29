@@ -1,0 +1,345 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "Soporte-Inteligente",
+        "responseMode": "lastNode",
+        "responseData": "allEntries",
+        "options": {
+          "allowedOrigins": "200"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -912,
+        16
+      ],
+      "id": "7116b39e-56cc-4774-b511-751b5016ff2a",
+      "name": "Webhook",
+      "webhookId": "e7381f73-9a4d-4e8f-aca2-da1ea320ed37"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e21fa0ef-1e91-413d-843f-35651139ead8",
+              "leftValue": "={{ $json.body.email }}",
+              "rightValue": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+              "operator": {
+                "type": "string",
+                "operation": "regex"
+              }
+            },
+            {
+              "id": "b448042b-ba67-4a93-a4a7-6dc13ce2c9ad",
+              "leftValue": "={{ $json.body.nombre }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b556a6e3-a6de-45c8-af06-4773fe1af307",
+              "leftValue": "={{ $json.body.mensaje }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -704,
+        16
+      ],
+      "id": "917fd183-63ff-4db3-9afc-839633ac2d1c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={\n  \"ticket_id\": \"{{ 'TK-' + $now.toFormat('yyyyMMdd') + '-' + Math.floor(Math.random() * 9000 + 1000) }}\",\n  \"fecha\": \"{{ $now.toFormat('dd/MM/yyyy HH:mm:ss') }}\",\n  \"nombre\": \"{{ $json.body.nombre }}\",\n  \"email\": \"{{ $json.body.email }}\",\n  \"asunto\": \"{{ $json.body.asunto || 'Sin asunto' }}\",\n  \"mensaje\": \"{{ $json.body.mensaje }}\",\n  \"prioridad\": \"{{ $json.body.prioridad || 'media' }}\",\n  \"ip_origen\": \"{{ $json.headers?.['x-forwarded-for'] || 'Local' }}\",\n  \"estado\": \"NUEVO\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -496,
+        -80
+      ],
+      "id": "9ec7e184-2e04-4f55-90be-b3d31b3525ea",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Clasifica este ticket de soporte:  Asunto: {{ $json.asunto }} Mensaje: {{ $json.mensaje }} Prioridad indicada por el usuario: {{ $json.prioridad }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "Eres un asistente de clasificación de tickets de soporte técnico.  Analiza el ticket y responde ÚNICAMENTE con un JSON válido, sin explicaciones adicionales.  El JSON debe tener exactamente esta estructura: {   \"categoria\": \"TÉCNICO\"   \"FACTURACIÓN\"   \"CONSULTA_GENERAL\"   \"QUEJA\"   \"SOLICITUD\",   \"sentimiento\": \"POSITIVO\"   \"NEUTRO\"   \"NEGATIVO\"   \"FRUSTRADO\",   \"urgencia\": \"BAJA\"   \"MEDIA\"   \"ALTA\"   \"CRÍTICA\",   \"resumen\": \"Resumen de máximo 50 palabras del problema\",   \"palabras_clave\": [\"palabra1\", \"palabra2\", \"palabra3\"] }"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -288,
+        -80
+      ],
+      "id": "2ec9dcd5-f3fb-4716-8d5e-a30cc8cb80aa",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {
+          "maxTokensToSample": 500,
+          "temperature": 0.1
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        -288,
+        80
+      ],
+      "id": "630652c0-378b-4aed-a77c-472e881086e7",
+      "name": "Anthropic Chat Model"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "language": "pythonNative",
+        "pythonCode": "import json\n\n# Obtener el texto (equivalente a $json.text || \"\")\nraw_text = data.get(\"text\", \"\")  # asumiendo que data es un diccionario\n\n# Quitar ```json y ```\nclean_text = raw_text.replace(\"```json\", \"\").replace(\"```\", \"\").strip()\n\n# Parsear a JSON real\nparsed = json.loads(clean_text)\n\n# Devolver objeto JSON válido\nparsed"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        64,
+        -80
+      ],
+      "id": "f18ceceb-43b8-4b48-a0fc-e5366817f554",
+      "name": "Code in Python"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "c04a7d45-1ae4-432d-b553-e13f152e5b0a"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "91b38ac7-5c5e-4912-b734-acc7a5b69d83",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "761a32ff-8fee-43c4-a4fb-94e22a38d2ae",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "39e96fdf-9115-47df-a6c2-0761f9cd87b7",
+                    "leftValue": "",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": 2
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        -80
+      ],
+      "id": "b5553608-f2b4-4bf7-8d6a-f9ab17a97198",
+      "name": "Switch"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in Python",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in Python": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "fc9ac2c7-ad93-4efd-a02b-e54c38d87712",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "291350fdd21c0e20341de2d4de0a9092ea8d933fd5dab2f61807290013cec322"
+  },
+  "id": "lrqkl17EXQsNYYHd",
+  "tags": []
+}
