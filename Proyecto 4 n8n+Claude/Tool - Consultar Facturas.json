@@ -1,0 +1,142 @@
+{
+  "name": "Tool - Consultar Facturas",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "33e5e74f-43d1-80be-952d-e0d006dc5bfd",
+          "mode": "list",
+          "cachedResultName": "Base de Facturas",
+          "cachedResultUrl": "https://www.notion.so/33e5e74f43d180be952de0d006dc5bfd"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        352
+      ],
+      "id": "5f2934d0-57b6-40cd-8868-50f145837299",
+      "name": "Get many database pages",
+      "credentials": {
+        "notionApi": {
+          "id": "TXjJHHoAvatSWYN5",
+          "name": "Notion account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "12c837f2-3457-4971-aed0-256abf663355",
+              "leftValue": "=={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        688,
+        352
+      ],
+      "id": "2989d094-6faf-4207-acb1-a5e774b7a27d",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst facturas = items.map(item => {\n  const props = item.json.properties || {};\n\n  return {\n    proveedor: props.Proveedor?.title?.[0]?.plain_text || \"N/A\",\n    numero: props[\"Numero Factura\"]?.rich_text?.[0]?.plain_text || \"N/A\",\n    fecha: props[\"Fecha Factura\"]?.date?.start || \"N/A\",\n    subtotal: props.Subtotal?.number || 0,\n    impuestos: props.Impuestos?.number || 0,\n    total: props.Total?.number || 0,\n    moneda: props.Moneda?.select?.name || \"COP\",\n    estado: props.Estado?.select?.name || \"N/A\"\n  };\n});\n\nconst resumen = {\n  total_facturas: facturas.length,\n  suma_total: facturas.reduce((acc, f) => acc + (f.total || 0), 0),\n  facturas\n};\n\nreturn [{\n  json: resumen\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        256
+      ],
+      "id": "f5c5eec1-737f-45c9-9370-83c7924f2e07",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Get many database pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many database pages": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "0655b9bc-60c4-4879-acd9-c7013148a870",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "253556449122b46fd977a32c9542433a07aec91e13cdc025f7cc1f4c95b35bb9"
+  },
+  "id": "BEuQvl0WDRCjfYQt",
+  "tags": []
+}

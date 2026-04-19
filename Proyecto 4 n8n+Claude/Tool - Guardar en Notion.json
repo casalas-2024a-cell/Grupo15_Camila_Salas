@@ -1,0 +1,91 @@
+{
+  "name": "Tool - Guardar en Notion",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parsear los datos de la factura que envía Claude\nconst input = $input.first().json.query;\nlet data;\n\ntry {\n  data = JSON.parse(input);\n} catch (e) {\n  // Si no es JSON válido, intentar extraer datos del texto\n  data = {\n    proveedor: input,\n    numero_factura: \"No especificado\",\n    fecha: new Date().toISOString().split('T')[0],\n    subtotal: 0,\n    impuestos: 0,\n    total: 0,\n    moneda: \"COP\",\n    items: \"No especificado\",\n    estado: \"Pendiente\"\n  };\n}\n\nreturn [{\n  json: {\n    proveedor: data.proveedor || \"No especificado\",\n    numero_factura: data.numero_factura || \"No especificado\",\n    fecha: data.fecha || new Date().toISOString().split('T')[0],\n    subtotal: parseFloat(data.subtotal) || 0,\n    impuestos: parseFloat(data.impuestos) || 0,\n    total: parseFloat(data.total) || 0,\n    moneda: data.moneda || \"COP\",\n    items: typeof data.items === 'object' \n      ? JSON.stringify(data.items) \n      : String(data.items || \"No especificado\"),\n    estado: data.estado || \"Pendiente\"\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        352
+      ],
+      "id": "5e0cbc31-0985-417c-992d-01768684896b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "pageId": {
+          "__rl": true,
+          "mode": "url",
+          "value": "",
+          "__regex": "(?:https|http)://www\\.notion\\.so/(?:[a-z0-9-]{2,}/)?(?:[a-zA-Z0-9-]{1,}-)?([0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12})"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        688,
+        352
+      ],
+      "id": "475c0724-8730-4753-a27a-971892f06ded",
+      "name": "Create a page",
+      "credentials": {
+        "notionApi": {
+          "id": "9p0JyaMhq20gbXXv",
+          "name": "Notion account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Create a page",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "cdb1bb04-b6e1-4fd0-ab40-aeeef4902b60",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "253556449122b46fd977a32c9542433a07aec91e13cdc025f7cc1f4c95b35bb9"
+  },
+  "id": "NBUcYi3m8ZC99h5t",
+  "tags": []
+}
